@@ -1,7 +1,7 @@
 // ===== 全局变量 =====
-// 美股价格（写死的兜底价格，用于API失败时的fallback）
-const PRICE_VOO_FALLBACK = 510;
-const PRICE_QQQ_FALLBACK = 495;
+// 美股价格（写死的价格）
+const PRICE_VOO_FALLBACK = 632;
+const PRICE_QQQ_FALLBACK = 620;
 const RATE_VOO = 0.12; // 12% 年化收益率
 const RATE_QQQ = 0.17; // 17% 年化收益率
 
@@ -175,38 +175,12 @@ async function fetchStockPrice(symbol) {
 }
 
 async function getStockPrices({ forceRefresh = false } = {}) {
-    // 服务器端已经有24小时缓存，前端每次都从服务器获取即可
-    // 如果服务器缓存有效，会立即返回；如果过期，服务器会自动从API获取并更新缓存
-    try {
-        const [vooPrice, qqqPrice] = await Promise.all([
-            fetchStockPrice('VOO'),
-            fetchStockPrice('QQQ')
-        ]);
-        
-        const prices = {
-            VOO: vooPrice,
-            QQQ: qqqPrice
-        };
-        
-        // 前端也缓存一下（5分钟缓存，避免频繁请求），但主要依赖服务器缓存
-        writeCache(CACHE_KEYS.stockPrices, prices);
-        return { prices, source: 'realtime', ts: nowMs() };
-    } catch (error) {
-        console.error('获取股票价格失败:', error);
-        
-        // 如果获取失败，尝试使用前端旧缓存（5分钟内）
-        const stale = readCache(CACHE_KEYS.stockPrices, 5 * 60 * 1000);
-        if (stale?.data) {
-            return { prices: stale.data, source: 'stale-cache', ts: stale.ts };
-        }
-        
-        // 如果连旧缓存都没有，使用fallback价格
-        const fallbackPrices = {
-            VOO: PRICE_VOO_FALLBACK,
-            QQQ: PRICE_QQQ_FALLBACK
-        };
-        return { prices: fallbackPrices, source: 'fallback', ts: nowMs() };
-    }
+    // 直接使用写死的价格，不调用API
+    const prices = {
+        VOO: PRICE_VOO_FALLBACK,
+        QQQ: PRICE_QQQ_FALLBACK
+    };
+    return { prices, source: 'hardcoded', ts: nowMs() };
 }
 
 // ===== 加密货币价格获取 =====
