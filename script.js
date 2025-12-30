@@ -59,8 +59,9 @@ function formatNumber(num) {
     const sign = num < 0 ? '-' : '';
     const abs = Math.abs(num);
     if (abs >= 1) {
-        const rounded = Math.round((abs + Number.EPSILON) * 100) / 100;
-        const parts = rounded.toFixed(2).replace(/\.?0+$/, '').split('.');
+        // 价格精确到小数点后一位
+        const rounded = Math.round((abs + Number.EPSILON) * 10) / 10;
+        const parts = rounded.toFixed(1).replace(/\.?0+$/, '').split('.');
         const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         return sign + intPart + (parts[1] ? '.' + parts[1] : '');
     }
