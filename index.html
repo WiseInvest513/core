@@ -19,7 +19,7 @@
         <!-- App Header -->
         <header class="app-header">
             <div class="app-header-left">
-                <a href="/" class="app-header-btn secondary">回归主站</a>
+                <a href="https://x.com/WiseInvest513" target="_blank" class="app-header-btn secondary">回归主站</a>
             </div>
             <h1 class="main-title">价值观纠正器指数版</h1>
             <div class="app-header-right">
@@ -46,6 +46,7 @@
                     max="20" 
                     value="10"
                     step="1"
+                    tabindex="0"
                 >
                 <div class="year-labels">
                     <span class="year-label">1年</span>
@@ -67,18 +68,26 @@
                     placeholder="输入数量"
                     inputmode="decimal"
                 >
-                <select id="currencySelect" class="currency-select">
-                    <optgroup label="主流代币">
-                        <option value="BTC">BTC</option>
-                        <option value="ETH">ETH</option>
-                        <option value="SOL">SOL</option>
-                        <option value="BNB">BNB</option>
-                        <option value="OKB">OKB</option>
-                    </optgroup>
-                    <optgroup label="其他">
-                        <option value="CUSTOM">🔍 自定义代币</option>
-                    </optgroup>
-                </select>
+                <div class="currency-select-wrapper">
+                    <select id="currencySelect" class="currency-select">
+                        <optgroup label="主流代币">
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="SOL">SOL</option>
+                            <option value="BNB">BNB</option>
+                            <option value="OKB">OKB</option>
+                        </optgroup>
+                        <optgroup label="其他">
+                            <option value="CUSTOM">🔍 自定义代币</option>
+                        </optgroup>
+                    </select>
+                    <button id="customTokenSearchBtn" class="custom-token-search-btn" style="display: none;" title="更换自定义代币">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -175,10 +184,11 @@
 
     <!-- Custom Token Modal -->
     <div id="customTokenModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content token-modal-content">
+            <button class="modal-close" id="closeCustomTokenModal">&times;</button>
             <div class="modal-header">
                 <h3>搜索代币</h3>
-                <button class="modal-close" id="closeCustomTokenModal">&times;</button>
             </div>
             <div class="modal-body">
                 <input 

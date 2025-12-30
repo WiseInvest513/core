@@ -83,8 +83,12 @@ function formatNumber(num) {
 function parseAmountInput(raw) {
     if (!raw || !raw.trim()) return NaN;
     const cleaned = String(raw).replace(/,/g, '').trim();
-    const num = parseFloat(cleaned);
-    return Number.isFinite(num) ? num : NaN;
+    // 检查是否为纯整数（允许负号，但实际使用中会过滤掉负数）
+    if (!/^-?\d+$/.test(cleaned)) {
+        return NaN; // 不是纯整数
+    }
+    const num = parseInt(cleaned, 10);
+    return Number.isFinite(num) && num > 0 ? num : NaN;
 }
 
 // ===== 缓存系统 =====
@@ -447,7 +451,8 @@ function updateEquivalentItems(listId, totalCNY) {
         .sort((a, b) => a.price - b.price);
     
     if (affordableItems.length === 0) {
-        equivalentList.innerHTML = '';
+        // 如果买不起任何东西，显示提示信息
+        equivalentList.innerHTML = '<div class="equivalent-item-small" style="justify-content: center; color: var(--text-muted); font-size: 14px;">兄弟该赚钱了</div>';
         return;
     }
     
@@ -493,10 +498,11 @@ async function searchTokens() {
         return;
     }
     
-    const loadingIndicator = document.getElementById('loadingIndicator');
     const searchResults = document.getElementById('searchResults');
-    loadingIndicator.style.display = 'block';
-    searchResults.innerHTML = '';
+    if (!searchResults) return;
+    
+    // 显示加载状态
+    searchResults.innerHTML = '<div class="loading-indicator">搜索中...</div>';
     
     try {
         const searchUrl = `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`;
@@ -507,14 +513,14 @@ async function searchTokens() {
         }
         
         const data = await response.json();
-        loadingIndicator.style.display = 'none';
         const coins = data.coins || [];
         tokenSearchSessionCache.set(queryKey, { ts: nowMs(), coins });
         displaySearchResults(coins);
     } catch (error) {
         console.error('搜索代币时出错:', error);
-        loadingIndicator.style.display = 'none';
-        searchResults.innerHTML = '<div class="no-results">搜索失败，请稍后重试</div>';
+        if (searchResults) {
+            searchResults.innerHTML = '<div class="no-results">搜索失败，请稍后重试</div>';
+        }
     }
 }
 
@@ -587,16 +593,18 @@ async function selectCustomToken(coin) {
                     // 更新显示文本为代币符号
                     customOption.textContent = coin.symbol.toUpperCase();
                 }
+                // 注意：如果当前已经是CUSTOM，设置value不会触发change事件，所以需要手动调用calculate
+                const wasCustom = currentSelect.value === 'CUSTOM';
                 currentSelect.value = 'CUSTOM';
+                
+                closeCustomTokenModal();
+                
+                // 无论是否触发change事件，都需要计算和保存
+                calculate();
+                saveState();
             }
-        }
-        
-        closeCustomTokenModal();
-        
-        if (selectId) {
-            const selectIndex = parseInt(selectId.replace('currency', ''));
-            calculate();
-            saveState();
+        } else {
+            closeCustomTokenModal();
         }
     } catch (error) {
         console.error('选择代币时出错:', error);
@@ -605,16 +613,23 @@ async function selectCustomToken(coin) {
 }
 
 function openCustomTokenModal() {
-    document.getElementById('customTokenModal').style.display = 'block';
-    document.getElementById('tokenSearchInput').value = '';
-    document.getElementById('searchResults').innerHTML = '';
-    setTimeout(() => {
-        document.getElementById('tokenSearchInput').focus();
-    }, 100);
+    const modal = document.getElementById('customTokenModal');
+    if (modal) {
+        modal.style.display = 'flex'; // 使用flex以正确居中显示
+        document.getElementById('tokenSearchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+        setTimeout(() => {
+            const input = document.getElementById('tokenSearchInput');
+            if (input) input.focus();
+        }, 100);
+    }
 }
 
 function closeCustomTokenModal() {
-    document.getElementById('customTokenModal').style.display = 'none';
+    const modal = document.getElementById('customTokenModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
     currentSelectId = null;
 }
 
@@ -683,6 +698,17 @@ function restoreState() {
         }
         if (state.customTokens) {
             customTokens = new Map(state.customTokens);
+        }
+        
+        // 更新自定义代币搜索按钮的显示状态
+        const currencySelectAfterRestore = document.getElementById('currencySelect');
+        const customTokenSearchBtn = document.getElementById('customTokenSearchBtn');
+        if (currencySelectAfterRestore && customTokenSearchBtn) {
+            if (currencySelectAfterRestore.value === 'CUSTOM') {
+                customTokenSearchBtn.style.display = 'flex';
+            } else {
+                customTokenSearchBtn.style.display = 'none';
+            }
         }
     } catch (e) {
         console.warn('恢复状态失败:', e);
@@ -807,13 +833,13 @@ async function generateSharePngBlob() {
     // 画布设置
     const scale = 3;
     const W = 1200;
-    const pad = 50; // 减少顶部padding
+    const pad = 40; // 减少顶部padding（50 -> 40）
     const cardGap = 40;
     const cardPadding = 50;
     const cardWidth = (W - pad * 2 - cardGap) / 2;
     
     const cardHeight = 750; // 增加卡片高度，确保内容装得下
-    const footerHeight = 60;
+    const footerHeight = 50; // footer高度（减少：60 -> 50）
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -821,16 +847,18 @@ async function generateSharePngBlob() {
     // 先计算高度（动态计算）
     let estimatedY = pad;
     
-    // Header高度
-    estimatedY += 45; // 主标题高度
+    // Header高度（添加了顶部标题）
+    estimatedY += 55; // 顶部标题高度（"价值观纠正器指数版"）
+    estimatedY += 28; // 间距（减少：30 -> 28）
+    estimatedY += 45; // 主标题高度（"别炒了兄弟"）
     estimatedY += 35; // 副标题高度
-    estimatedY += 40; // 间距
+    estimatedY += 30; // 间距（减少：35 -> 30）
     
     // 卡片高度
     estimatedY += cardHeight;
     
-    // Footer
-    estimatedY += footerHeight + pad;
+    // Footer（减少底部padding）
+    estimatedY += footerHeight + 30; // 减少底部padding（pad -> 30）
     
     const H = estimatedY;
     canvas.width = W * scale;
@@ -844,12 +872,23 @@ async function generateSharePngBlob() {
     const centerX = W / 2;
     let cursorY = pad;
     
-    // ===== Header =====
-    // 主标题模块
+    // ===== 顶部标题 =====
+    // "价值观纠正器指数版" - 作为主标题，使用更粗的字重以区别于正文
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 48px "PingFang SC"'; // 进一步减小：56px -> 48px
+    // 使用900字重（最粗）来突出标题，与"别炒了兄弟"的bold（700）区分
+    ctx.font = '900 60px "PingFang SC", "Microsoft YaHei", sans-serif'; // 使用900 weight（最粗）和更大的字号
+    const appTitleY = cursorY + 42;
+    ctx.fillText('价值观纠正器指数版', centerX, appTitleY);
+    cursorY = appTitleY + 28; // 减少间距：30 -> 28
+    
+    // ===== Header =====
+    // 主标题模块（"别炒了兄弟"）
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px "PingFang SC"';
     const mainTitle = `别炒了兄弟，你这 ${formatNumber(amount)} 个 ${cryptoName}...`;
     const mainTitleY = cursorY + 38;
     ctx.fillText(mainTitle, centerX, mainTitleY);
@@ -857,7 +896,7 @@ async function generateSharePngBlob() {
     
     // 副标题模块
     ctx.fillStyle = '#8E8E93';
-    ctx.font = '400 24px "PingFang SC"'; // 减小：26px -> 24px
+    ctx.font = '400 24px "PingFang SC"';
     const subTitleY = cursorY + 28;
     ctx.fillText(`要是换成美股，${selectedYears}年后能变成这样👇`, centerX, subTitleY);
     cursorY = subTitleY + 25; // 紧凑间距
@@ -975,13 +1014,27 @@ async function generateSharePngBlob() {
     drawCard(qqqCardX, cursorY, 'QQQ', '纳指100', currentQqqPrice, qqqShares, qqqFutureUSD, qqqItems, qqqFutureCNY);
     
     // ===== Footer =====
-    const footerY = cursorY + cardHeight + 35; // 卡片下方35px
+    const footerY = cursorY + cardHeight + 25; // 卡片下方25px（进一步减少留白：30 -> 25）
     
+    // 统一字体大小
+    const footerFontSize = 22;
+    const footerColor = 'rgba(142, 142, 147, 0.8)';
+    
+    // 左下角：作者
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(142, 142, 147, 0.6)';
-    ctx.font = '400 18px "PingFang SC"';
-    ctx.fillText('价值观纠正器指数版', pad, footerY);
+    ctx.fillStyle = footerColor;
+    ctx.font = `400 ${footerFontSize}px "PingFang SC"`;
+    ctx.fillText('作者：X@Wise投资有术', pad, footerY);
+    
+    // 右下角：日期（年月日）
+    ctx.textAlign = 'right';
+    ctx.fillStyle = footerColor;
+    ctx.font = `400 ${footerFontSize}px "PingFang SC"`;
+    const now = new Date();
+    const padDate = (n) => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}/${padDate(now.getMonth() + 1)}/${padDate(now.getDate())}`;
+    ctx.fillText(dateStr, W - pad, footerY);
     
     return await new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
@@ -1102,32 +1155,148 @@ function setupEventListeners() {
     const tokenSearchInput = document.getElementById('tokenSearchInput');
     
     if (amountInput) {
-        amountInput.addEventListener('input', () => {
-            calculate();
+        // 只允许输入数字（整数）
+        amountInput.addEventListener('input', function(e) {
+            const value = this.value;
+            
+            // 移除所有非数字字符（除了为了清理输入）
+            const cleaned = value.replace(/[^\d]/g, '');
+            
+            // 如果清理后的值与原值不同，说明输入了非法字符
+            if (cleaned !== value) {
+                // 显示提示
+                showToast('只能够输入整数');
+                // 将输入框的值设置为清理后的值
+                this.value = cleaned;
+            }
+            
+            // 更新显示和计算
+            if (cleaned) {
+                calculate();
+            } else {
+                clearResults();
+            }
+        });
+        
+        // 阻止粘贴非数字内容
+        amountInput.addEventListener('paste', function(e) {
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            if (!/^\d+$/.test(paste)) {
+                e.preventDefault();
+                showToast('只能够输入整数');
+            }
         });
     }
     
     if (yearSlider && yearDisplay) {
-        // 更新显示
+        // 阻止键盘输入（range input 本身不支持文本输入，但为了安全起见添加保护）
+        yearSlider.addEventListener('keydown', function(e) {
+            // 只允许方向键和 Tab 键（用于无障碍访问）
+            // 阻止所有其他键盘输入，包括数字键
+            const allowedKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab'];
+            if (!allowedKeys.includes(e.key)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // 阻止 keypress 事件（防止任何字符输入）
+        yearSlider.addEventListener('keypress', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 阻止粘贴操作
+        yearSlider.addEventListener('paste', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 更新显示（只能通过滑动或方向键）
         yearSlider.addEventListener('input', function() {
-            yearDisplay.textContent = this.value;
+            // 确保值在有效范围内
+            let value = parseInt(this.value);
+            if (isNaN(value) || value < 1) value = 1;
+            if (value > 20) value = 20;
+            
+            // 如果值被修改，确保滑块值也更新
+            if (value !== parseInt(this.value)) {
+                this.value = value;
+            }
+            
+            yearDisplay.textContent = value;
             calculate();
         });
     }
     
     if (currencySelect) {
+        let lastValue = currencySelect.value;
+        const customTokenSearchBtn = document.getElementById('customTokenSearchBtn');
+        
+        // 显示/隐藏搜索按钮的函数
+        function updateCustomTokenSearchBtn() {
+            if (customTokenSearchBtn) {
+                if (currencySelect.value === 'CUSTOM') {
+                    customTokenSearchBtn.style.display = 'flex';
+                } else {
+                    customTokenSearchBtn.style.display = 'none';
+                }
+            }
+        }
+        
+        // 初始化按钮显示状态
+        updateCustomTokenSearchBtn();
+        
+        // 使用 mousedown 事件来保存点击前的值
+        currencySelect.addEventListener('mousedown', function(e) {
+            // 保存点击前的值
+            lastValue = this.value;
+        });
+        
         currencySelect.addEventListener('change', function() {
             if (this.value === 'CUSTOM') {
                 currentSelectId = this.id;
                 openCustomTokenModal();
+                // 打开模态框后return，不执行后面的calculate
                 return;
             }
-            // 如果从CUSTOM切换回其他选项，恢复"自定义代币"文本
-            const customOption = this.querySelector('option[value="CUSTOM"]');
-            if (customOption && customOption.textContent !== '自定义代币') {
-                customOption.textContent = '自定义代币';
+            
+            // 如果从CUSTOM切换回其他选项
+            if (lastValue === 'CUSTOM' && this.value !== 'CUSTOM') {
+                // 不重置CUSTOM选项的显示文本，保留用户之前的选择
             }
+            
+            // 更新搜索按钮显示状态
+            updateCustomTokenSearchBtn();
+            
             calculate();
+        });
+        
+        // 搜索按钮点击事件：打开搜索模态框
+        if (customTokenSearchBtn) {
+            customTokenSearchBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                currentSelectId = currencySelect.id;
+                openCustomTokenModal();
+            });
+        }
+        
+        // 处理键盘导航：当用户使用键盘选择CUSTOM选项时也能打开搜索
+        currencySelect.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                // 如果当前焦点在CUSTOM选项上，打开搜索模态框
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.value === 'CUSTOM') {
+                    if (this.value === 'CUSTOM') {
+                        // 如果已经是CUSTOM，打开搜索框
+                        e.preventDefault();
+                        currentSelectId = this.id;
+                        openCustomTokenModal();
+                        return false;
+                    }
+                }
+            }
         });
     }
     
@@ -1148,9 +1317,9 @@ function setupEventListeners() {
         tokenSearchInput.addEventListener('input', function(e) {
             const query = e.target.value.trim();
             if (searchTimeout) clearTimeout(searchTimeout);
+            const searchResults = document.getElementById('searchResults');
             if (query === '') {
-                document.getElementById('searchResults').innerHTML = '';
-                document.getElementById('loadingIndicator').style.display = 'none';
+                if (searchResults) searchResults.innerHTML = '';
                 return;
             }
             searchTimeout = setTimeout(() => {
@@ -1166,11 +1335,27 @@ function setupEventListeners() {
         });
     }
     
+    // 关闭自定义代币搜索模态框的按钮
+    const closeCustomTokenModalBtn = document.getElementById('closeCustomTokenModal');
+    if (closeCustomTokenModalBtn) {
+        closeCustomTokenModalBtn.addEventListener('click', closeCustomTokenModal);
+    }
+    
     // 点击弹窗外部关闭
     window.addEventListener('click', function(event) {
         const customModal = document.getElementById('customTokenModal');
         if (event.target === customModal) {
             closeCustomTokenModal();
+        }
+    });
+    
+    // ESC键关闭自定义代币搜索模态框
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const customModal = document.getElementById('customTokenModal');
+            if (customModal && customModal.style.display === 'flex') {
+                closeCustomTokenModal();
+            }
         }
     });
     
