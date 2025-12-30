@@ -1,0 +1,21 @@
+{
+  "name": "stock-investor-calculator",
+  "version": "1.0.0",
+  "description": "美股定投纠正器 - 计算投资VOO和QQQ的预期收益",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "stock",
+    "investor",
+    "ETF",
+    "VOO",
+    "QQQ",
+    "calculator"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

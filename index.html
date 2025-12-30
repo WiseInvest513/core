@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>价值观纠正器指数版</title>
+    <meta name="description" content="加密货币投资价值纠正器 - 美股定投收益预测">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="价值观纠正器指数版">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- App Header -->
+        <header class="app-header">
+            <div class="app-header-left">
+                <a href="/" class="app-header-btn secondary">回归主站</a>
+            </div>
+            <h1 class="main-title">价值观纠正器指数版</h1>
+            <div class="app-header-right">
+                <button id="exportImageBtn" class="app-header-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    导出图片
+                </button>
+            </div>
+        </header>
+
+        <!-- Year Slider Section -->
+        <div class="year-section">
+            <p class="subtitle">若持有加密货币，<span id="yearDisplay">10</span>年后在美股将变成...</p>
+            <div class="year-slider-container">
+                <input 
+                    type="range" 
+                    id="yearSlider" 
+                    class="year-slider"
+                    min="1" 
+                    max="20" 
+                    value="10"
+                    step="1"
+                >
+                <div class="year-labels">
+                    <span class="year-label">1年</span>
+                    <span class="year-label highlight-year">5年</span>
+                    <span class="year-label highlight-year">10年</span>
+                    <span class="year-label highlight-year">15年</span>
+                    <span class="year-label">20年</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="amountInput" 
+                    class="amount-input" 
+                    placeholder="输入数量"
+                    inputmode="decimal"
+                >
+                <select id="currencySelect" class="currency-select">
+                    <optgroup label="主流代币">
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                        <option value="SOL">SOL</option>
+                        <option value="BNB">BNB</option>
+                        <option value="OKB">OKB</option>
+                    </optgroup>
+                    <optgroup label="其他">
+                        <option value="CUSTOM">🔍 自定义代币</option>
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+
+        <!-- Results Area -->
+        <div class="results-container" id="resultsContainer">
+            <!-- VOO Card -->
+            <div class="etf-card" id="vooCard">
+                <div class="etf-card-header">
+                    <div class="etf-info">
+                        <div class="etf-title-row">
+                            <span class="etf-symbol">VOO</span>
+                            <span class="etf-name">标普500</span>
+                        </div>
+                        <span class="etf-price" id="vooPrice">$510</span>
+                    </div>
+                </div>
+                <div class="etf-card-body">
+                    <div class="share-badge">
+                        <span class="shares-label">当前可购份额</span>
+                        <span class="shares-value" id="vooShares">--</span>
+                    </div>
+                    <div class="projection-grid">
+                        <div class="projection-left">
+                            <div class="projection-title" id="vooProjectionTitle">10年后预计</div>
+                            <div class="projection-main" id="vooProjectionValue">--</div>
+                            <div class="projection-gain" id="vooProjectionGain">--</div>
+                        </div>
+                        <div class="projection-divider"></div>
+                        <div class="equivalent-right">
+                            <div class="equivalent-title-small">相当于</div>
+                            <div class="equivalent-list" id="vooEquivalentList">
+                                <!-- 等价物品将动态插入这里 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QQQ Card -->
+            <div class="etf-card" id="qqqCard">
+                <div class="etf-card-header">
+                    <div class="etf-info">
+                        <div class="etf-title-row">
+                            <span class="etf-symbol">QQQ</span>
+                            <span class="etf-name">纳指100</span>
+                        </div>
+                        <span class="etf-price" id="qqqPrice">$495</span>
+                    </div>
+                </div>
+                <div class="etf-card-body">
+                    <div class="share-badge">
+                        <span class="shares-label">当前可购份额</span>
+                        <span class="shares-value" id="qqqShares">--</span>
+                    </div>
+                    <div class="projection-grid">
+                        <div class="projection-left">
+                            <div class="projection-title" id="qqqProjectionTitle">10年后预计</div>
+                            <div class="projection-main" id="qqqProjectionValue">--</div>
+                            <div class="projection-gain" id="qqqProjectionGain">--</div>
+                        </div>
+                        <div class="projection-divider"></div>
+                        <div class="equivalent-right">
+                            <div class="equivalent-title-small">相当于</div>
+                            <div class="equivalent-list" id="qqqEquivalentList">
+                                <!-- 等价物品将动态插入这里 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="shareToast" class="toast">
+        <div class="toast-text">已复制到剪贴板</div>
+    </div>
+
+    <!-- Export Image Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div class="modal-content image-modal-content">
+            <button class="modal-close" id="closeImageModal">&times;</button>
+            <div class="modal-preview-container">
+                <img id="previewImg" alt="图片预览">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" id="copyImageBtn">复制图片</button>
+                <button class="modal-btn primary" id="downloadImageBtn">保存到相册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Token Modal -->
+    <div id="customTokenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>搜索代币</h3>
+                <button class="modal-close" id="closeCustomTokenModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input 
+                    type="text" 
+                    id="tokenSearchInput" 
+                    class="token-search-input" 
+                    placeholder="输入代币名称或符号搜索..."
+                >
+                <div id="searchResults" class="search-results">
+                    <!-- 搜索结果将在这里显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
