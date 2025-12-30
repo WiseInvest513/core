@@ -46,5 +46,8 @@ build/
 config.js
 secrets.js
 
+# Vercel
+.vercel
+
 # GitHub Pages 部署目录（如果使用）
 _site/
