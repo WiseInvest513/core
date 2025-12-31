@@ -839,7 +839,7 @@ async function generateSharePngBlob() {
     const cardWidth = (W - pad * 2 - cardGap) / 2;
     
     const cardHeight = 750; // 增加卡片高度，确保内容装得下
-    const footerHeight = 50; // footer高度（减少：60 -> 50）
+    const footerFontSizeEst = 22; // 用于估算高度的字体大小
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -857,8 +857,10 @@ async function generateSharePngBlob() {
     // 卡片高度
     estimatedY += cardHeight;
     
-    // Footer（减少底部padding）
-    estimatedY += footerHeight + 30; // 减少底部padding（pad -> 30）
+    // Footer（计算footer高度：3行文字 + 距离卡片3个字体大小的间距）
+    const footerSpacingEst = footerFontSizeEst * 3; // 距离卡片底部的间距（3个字体大小）
+    const footerLinesHeight = footerFontSizeEst * 1.5 * 2; // 2行文字（日期和网站地址，每行1.5倍行高）
+    estimatedY += footerSpacingEst + footerFontSizeEst + footerLinesHeight; // 间距 + 作者行 + 日期和地址行
     
     const H = estimatedY;
     canvas.width = W * scale;
@@ -1014,11 +1016,10 @@ async function generateSharePngBlob() {
     drawCard(qqqCardX, cursorY, 'QQQ', '纳指100', currentQqqPrice, qqqShares, qqqFutureUSD, qqqItems, qqqFutureCNY);
     
     // ===== Footer =====
-    const footerY = cursorY + cardHeight + 25; // 卡片下方25px（进一步减少留白：30 -> 25）
-    
-    // 统一字体大小
     const footerFontSize = 22;
     const footerColor = 'rgba(142, 142, 147, 0.8)';
+    const footerSpacing = footerFontSize * 3; // 距离卡片底部3个字体大小的距离
+    const footerY = cursorY + cardHeight + footerSpacing; // 卡片下方距离增加到3个字体大小
     
     // 左下角：作者
     ctx.textBaseline = 'alphabetic';
@@ -1034,7 +1035,12 @@ async function generateSharePngBlob() {
     const now = new Date();
     const padDate = (n) => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear()}/${padDate(now.getMonth() + 1)}/${padDate(now.getDate())}`;
+    const lineHeight = footerFontSize * 1.5; // 行高为字体大小的1.5倍
     ctx.fillText(dateStr, W - pad, footerY);
+    
+    // 右下角：网站地址（在日期下面）
+    const urlY = footerY + lineHeight; // 日期下方，使用行高作为间距
+    ctx.fillText('https://www.core-wise-invest.org/', W - pad, urlY);
     
     return await new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
