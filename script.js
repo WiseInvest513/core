@@ -83,11 +83,12 @@ function formatNumber(num) {
 function parseAmountInput(raw) {
     if (!raw || !raw.trim()) return NaN;
     const cleaned = String(raw).replace(/,/g, '').trim();
-    // 检查是否为纯整数（允许负号，但实际使用中会过滤掉负数）
-    if (!/^-?\d+$/.test(cleaned)) {
-        return NaN; // 不是纯整数
+    // 检查是否为有效数字（允许小数，最多两位小数）
+    // 匹配格式：可选负号 + 数字 + 可选小数点 + 最多两位数字
+    if (!/^-?\d+(\.\d{1,2})?$/.test(cleaned)) {
+        return NaN; // 不是有效数字格式
     }
-    const num = parseInt(cleaned, 10);
+    const num = parseFloat(cleaned);
     return Number.isFinite(num) && num > 0 ? num : NaN;
 }
 
@@ -354,7 +355,10 @@ function calculate() {
     
     // 获取加密货币价格
     let cryptoPrice = null;
-    if (selectedCurrency === 'CUSTOM') {
+    if (selectedCurrency === 'USD') {
+        // USD 价格固定为 1
+        cryptoPrice = 1;
+    } else if (selectedCurrency === 'CUSTOM') {
         const customOption = currencySelect.querySelector('option[value="CUSTOM"]');
         const tokenKey = customOption?.getAttribute('data-token-key');
         if (tokenKey && customTokens.has(tokenKey)) {
@@ -767,7 +771,11 @@ async function generateSharePngBlob() {
     let cryptoPrice = null;
     let cryptoName = '';
     
-    if (selectedCurrency === 'CUSTOM') {
+    if (selectedCurrency === 'USD') {
+        // USD 价格固定为 1
+        cryptoPrice = 1;
+        cryptoName = 'USD';
+    } else if (selectedCurrency === 'CUSTOM') {
         const customOption = currencySelect.querySelector('option[value="CUSTOM"]');
         const tokenKey = customOption?.getAttribute('data-token-key');
         if (tokenKey && customTokens.has(tokenKey)) {
@@ -1161,35 +1169,74 @@ function setupEventListeners() {
     const tokenSearchInput = document.getElementById('tokenSearchInput');
     
     if (amountInput) {
-        // 只允许输入数字（整数）
+        // 允许输入数字和小数（小数点后最多两位）
         amountInput.addEventListener('input', function(e) {
             const value = this.value;
             
-            // 移除所有非数字字符（除了为了清理输入）
-            const cleaned = value.replace(/[^\d]/g, '');
+            // 匹配格式：可选负号 + 数字 + 可选小数点 + 最多两位数字
+            // 允许输入过程中的中间状态，如 "123." 或 "123.5"
+            const validPattern = /^-?\d*\.?\d{0,2}$/;
             
-            // 如果清理后的值与原值不同，说明输入了非法字符
-            if (cleaned !== value) {
-                // 显示提示
-                showToast('只能够输入整数');
-                // 将输入框的值设置为清理后的值
+            if (value === '' || value === '-') {
+                // 允许空值和单独的负号（输入过程中的中间状态）
+                clearResults();
+                return;
+            }
+            
+            // 如果输入不符合格式，进行修正
+            if (!validPattern.test(value)) {
+                // 尝试从输入中提取有效部分
+                // 先移除所有非数字和非小数点的字符
+                let cleaned = value.replace(/[^\d.-]/g, '');
+                
+                // 只保留第一个负号（如果有）在开头
+                const hasNegative = cleaned.startsWith('-');
+                cleaned = cleaned.replace(/-/g, '');
+                if (hasNegative) cleaned = '-' + cleaned;
+                
+                // 只保留第一个小数点
+                const dotIndex = cleaned.indexOf('.');
+                if (dotIndex !== -1) {
+                    const beforeDot = cleaned.substring(0, dotIndex);
+                    const afterDot = cleaned.substring(dotIndex + 1).replace(/\./g, '');
+                    // 限制小数点后最多两位
+                    cleaned = beforeDot + '.' + afterDot.substring(0, 2);
+                }
+                
+                // 如果修正后的值仍然无效，清空输入
+                if (!/^-?\d*\.?\d{0,2}$/.test(cleaned)) {
+                    this.value = '';
+                    clearResults();
+                    showToast('请输入有效数字（最多两位小数）');
+                    return;
+                }
+                
                 this.value = cleaned;
+                
+                // 如果修正后的小数部分超过两位，截断
+                if (cleaned.includes('.')) {
+                    const parts = cleaned.split('.');
+                    if (parts[1] && parts[1].length > 2) {
+                        this.value = parts[0] + '.' + parts[1].substring(0, 2);
+                    }
+                }
             }
             
             // 更新显示和计算
-            if (cleaned) {
+            if (this.value && this.value !== '-') {
                 calculate();
             } else {
                 clearResults();
             }
         });
         
-        // 阻止粘贴非数字内容
+        // 阻止粘贴无效内容
         amountInput.addEventListener('paste', function(e) {
             const paste = (e.clipboardData || window.clipboardData).getData('text');
-            if (!/^\d+$/.test(paste)) {
+            // 允许粘贴有效数字（最多两位小数）
+            if (paste && !/^-?\d+(\.\d{1,2})?$/.test(paste.trim().replace(/,/g, ''))) {
                 e.preventDefault();
-                showToast('只能够输入整数');
+                showToast('只能够输入数字（最多两位小数）');
             }
         });
     }
